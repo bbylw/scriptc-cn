@@ -33,6 +33,7 @@ const position = ordered.findIndex((i) => i.slug === entry.id);
   group={entry.data.group}
   source={entry.data.source}
   current={docPath(entry.id)}
+  slug={entry.id}
   headings={headings}
   items={ordered}
   prev={position > 0 ? ordered[position - 1] : undefined}

@@ -183,7 +183,7 @@ const installHtml = await highlight(installCode, "bash");
                   "group grid gap-4 rounded-panel border px-5 py-6 transition-[transform,border-color,background-color] duration-300 hover:-translate-y-px md:grid-cols-[minmax(0,190px)_minmax(0,1fr)] md:gap-8 md:px-7",
                   tier.emphasis
                     ? "border-accent-dim/70 bg-ink-900"
-                    : "border-line bg-ink-950 md:pl-10",
+                    : "border-line bg-ink-950 hover:border-line-strong md:pl-10",
                   i === 2 && "md:pl-20",
                 ]}
               >
@@ -229,7 +229,26 @@ const installHtml = await highlight(installCode, "bash");
           }
         </ol>
 
-        <div class="code-panel code-body mt-12 max-w-[640px]" set:html={emitHtml} />
+        <div class="mt-12 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,300px)]">
+          <div class="code-panel code-body" set:html={emitHtml} />
+          <dl class="border-t border-line">
+            {[
+              ["--emit=ir", "hello.ir.json"],
+              ["--emit=c", "hello.c"],
+              ["--emit=llvm", "hello.ll"],
+              ["--emit=asm", "hello.s"],
+              ["--emit=obj", "hello.o"],
+            ].map(([flag, file]) => (
+              <div class="flex items-baseline justify-between gap-4 border-b border-line py-2.5">
+                <dt class="font-mono text-[12.5px] text-fg-muted">{flag}</dt>
+                <dd class="font-mono text-[12.5px] text-fg-subtle">{file}</dd>
+              </div>
+            ))}
+            <p class="pt-4 text-[13px] leading-relaxed text-fg-subtle">
+              不同类型的产物会累积在 .scriptc/ 目录中，重新构建某一类型会更新对应的文件。
+            </p>
+          </dl>
+        </div>
       </div>
     </section>
 

@@ -14,6 +14,7 @@ type Props = {
   group: string;
   source: string;
   current: string;
+  slug: string;
   headings: Heading[];
   items: DocNavItem[];
   prev?: DocNavItem;
@@ -63,6 +64,14 @@ const toc = props.headings.filter((h) => h.depth <= 3);
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d={githubPath}></path>
             </svg>
+          </a>
+          <a
+            href={`${SITE.repo}/edit/main/src/content/docs/${props.slug}.md`}
+            rel="noopener"
+            target="_blank"
+            class="ml-auto text-fg-subtle transition-colors hover:text-accent"
+          >
+            改进此页
           </a>
         </div>
 
@@ -114,10 +123,8 @@ const toc = props.headings.filter((h) => h.depth <= 3);
                   <li>
                     <a
                       href={`#${h.slug}`}
-                      class:list={[
-                        "block border-l-2 border-transparent pl-3 text-[13px] leading-snug text-fg-muted transition-colors hover:border-accent hover:text-fg",
-                        h.depth === 3 && "pl-6",
-                      ]}
+                      data-slug={h.slug}
+                      class:list={["toc-link block pl-3 text-[13px] leading-snug", h.depth === 3 && "pl-6"]}
                     >
                       {h.text}
                     </a>
@@ -133,20 +140,41 @@ const toc = props.headings.filter((h) => h.depth <= 3);
 </Base>
 
 <script>
+  const article = document.querySelector<HTMLElement>(".prose-doc");
+
   document.querySelectorAll<HTMLElement>(".prose-doc pre").forEach((block) => {
     const wrap = document.createElement("div");
     wrap.className = "code-block group/code relative";
     block.parentNode?.insertBefore(wrap, block);
     wrap.appendChild(block);
 
+    // A bold lone filename paragraph right above the fence becomes the panel
+    // caption instead of floating as a separate line.
+    const label = wrap.previousElementSibling;
+    if (
+      label instanceof HTMLElement &&
+      label.tagName === "P" &&
+      label.children.length === 1 &&
+      label.firstElementChild?.tagName === "STRONG" &&
+      /^\S+\.\w+$/.test(label.textContent?.trim() ?? "")
+    ) {
+      const head = document.createElement("div");
+      head.className = "code-head";
+      head.textContent = label.textContent?.trim() ?? "";
+      wrap.insertBefore(head, block);
+      label.remove();
+    }
+
     const btn = document.createElement("button");
     btn.type = "button";
     btn.textContent = "复制";
     btn.setAttribute("aria-live", "polite");
-    // Stays out of the way until the block is hovered or the button itself is
-    // focused, so it can never sit on top of the first line of code.
-    btn.className =
-      "pointer-events-none absolute right-3 top-3 rounded-control border border-line bg-ink-850 px-2 py-1 font-mono text-[11px] text-fg-muted opacity-0 transition-opacity hover:text-fg focus-visible:pointer-events-auto focus-visible:opacity-100 group-hover/code:pointer-events-auto group-hover/code:opacity-100";
+    const head = wrap.querySelector<HTMLElement>(".code-head");
+    // With a caption bar the button docks into it; otherwise it floats over the
+    // panel and stays hidden until hover/focus so it never covers the code.
+    btn.className = head
+      ? "ml-auto rounded-control border border-line bg-ink-850 px-2 py-0.5 font-mono text-[11px] text-fg-subtle transition-colors hover:border-line-strong hover:text-fg"
+      : "pointer-events-none absolute right-3 top-3 rounded-control border border-line bg-ink-850 px-2 py-1 font-mono text-[11px] text-fg-muted opacity-0 transition-opacity hover:text-fg focus-visible:pointer-events-auto focus-visible:opacity-100 group-hover/code:pointer-events-auto group-hover/code:opacity-100";
     btn.addEventListener("click", async () => {
       try {
         await navigator.clipboard.writeText(block.innerText);
@@ -158,6 +186,40 @@ const toc = props.headings.filter((h) => h.depth <= 3);
         btn.textContent = "复制";
       }, 1600);
     });
-    wrap.appendChild(btn);
+    (head ?? wrap).appendChild(btn);
   });
+
+  article?.querySelectorAll<HTMLHeadingElement>("h2[id], h3[id]").forEach((heading) => {
+    const link = document.createElement("a");
+    link.className = "heading-anchor";
+    link.href = `#${heading.id}`;
+    link.setAttribute("aria-label", `链接到「${heading.textContent?.trim()}」`);
+    link.textContent = "#";
+    heading.appendChild(link);
+  });
+
+  const tocLinks = [...document.querySelectorAll<HTMLAnchorElement>(".toc-link")];
+  if (tocLinks.length > 0) {
+    const setActive = (slug: string) => {
+      tocLinks.forEach((l) => l.setAttribute("data-active", String(l.dataset.slug === slug)));
+    };
+    const visible = new Set<string>();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          const id = (entry.target as HTMLElement).id;
+          if (entry.isIntersecting) visible.add(id);
+          else visible.delete(id);
+        }
+        const current = tocLinks.find((l) => visible.has(l.dataset.slug ?? ""));
+        if (current) setActive(current.dataset.slug ?? "");
+      },
+      { rootMargin: "-96px 0px -65% 0px", threshold: 0 },
+    );
+    tocLinks.forEach((l) => {
+      const target = document.getElementById(l.dataset.slug ?? "");
+      if (target) observer.observe(target);
+    });
+    setActive(tocLinks[0].dataset.slug ?? "");
+  }
 </script>

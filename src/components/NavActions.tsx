@@ -63,6 +63,24 @@ function scoreEntry(entry: IndexEntry, terms: string[]): Hit[] {
   ];
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Wraps query-term matches in <mark>; split with a capture group puts the
+ *  matches on odd indices, so no manual bookkeeping is needed. */
+function Highlight({ text, terms }: { text: string; terms: string[] }) {
+  if (terms.length === 0) return <>{text}</>;
+  const pattern = new RegExp(`(${terms.map(escapeRegExp).join("|")})`, "gi");
+  return (
+    <>
+      {text.split(pattern).map((part, i) =>
+        i % 2 === 1 ? <mark key={i}>{part}</mark> : <span key={i}>{part}</span>,
+      )}
+    </>
+  );
+}
+
 export default function NavActions({
   items,
   githubPath,
@@ -187,6 +205,11 @@ export default function NavActions({
       .sort((a, b) => b.score - a.score)
       .slice(0, 12);
   }, [index, query]);
+
+  const terms = useMemo(
+    () => query.trim().toLowerCase().split(/\s+/).filter(Boolean),
+    [query],
+  );
 
   const active = cursor < hits.length ? cursor : 0;
   const searching = index !== null && query.trim() !== "";
@@ -372,7 +395,7 @@ export default function NavActions({
                       >
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm text-fg">
-                            {hit.heading ?? hit.title}
+                            <Highlight text={hit.heading ?? hit.title} terms={terms} />
                           </span>
                           <span className="block truncate text-xs text-fg-subtle">
                             {hit.group}
