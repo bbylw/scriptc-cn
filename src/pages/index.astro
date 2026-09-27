@@ -1,0 +1,406 @@
+---
+import { getCollection } from "astro:content";
+import { Image } from "astro:assets";
+import { codeToHtml } from "shiki";
+import Base from "../layouts/Base.astro";
+import heroImg from "../assets/hero-compile.png";
+import verifyImg from "../assets/verification.png";
+import { DOC_GROUPS, docPath } from "../consts";
+
+const docs = await getCollection("docs");
+const navItems = docs
+  .slice()
+  .sort(
+    (a, b) =>
+      DOC_GROUPS.indexOf(a.data.group) - DOC_GROUPS.indexOf(b.data.group) ||
+      a.data.order - b.data.order,
+  )
+  .map((d) => ({
+    slug: d.id,
+    title: d.data.title,
+    group: d.data.group,
+    path: docPath(d.id),
+  }));
+
+const byGroup = DOC_GROUPS.map((group) => ({
+  group,
+  items: docs
+    .filter((d) => d.data.group === group)
+    .sort((a, b) => a.data.order - b.data.order),
+}));
+
+const tiers = [
+  {
+    name: "静态编译",
+    tag: "默认层级",
+    body: "原生代码，没有引擎。你写的那份 TypeScript 直接过真正的 TypeScript 编译器做类型检查，再落到原生代码上。stdout、stderr 与退出码和 Node 下逐字节一致，分歧只有一份带编号的记录清单。",
+    meta: "约 320KB · 除系统 C 库外不链接任何东西",
+    emphasis: true,
+  },
+  {
+    name: "动态运行",
+    tag: "--dynamic",
+    body: "内嵌 quickjs-ng 引擎，只为无法静态化的部分工作：npm 依赖自带的 JS，以及 any 类型代码。每个回穿进静态代码的值都在运行时校验，说谎的类型抛出可捕获的 TypeError，而不是破坏内存。",
+    meta: "内嵌引擎约 620KB · 静态仍是默认",
+    emphasis: false,
+  },
+  {
+    name: "拒绝编译",
+    tag: "编译期失败",
+    body: "其余一切在编译期停下，附带具体的错误码、一段代码帧，通常还有一个改写提示。没有任何代码会被静默地编译错误。",
+    meta: "例如 SC2013 · SC3002",
+    emphasis: false,
+  },
+];
+
+const stages = [
+  { label: "TypeScript", note: "解析与类型检查" },
+  { label: "带类型的 IR", note: "hello.ir.json" },
+  { label: "C", note: "可读的 C 代码" },
+  { label: "LLVM IR", note: "hello.ll" },
+  { label: "原生 / WASM", note: "hello · hello.wasm" },
+];
+
+// Literal CLI transcripts. Kept as strings so Astro does not read `{` as an
+// expression and the content stays byte-identical to the docs pages.
+const heroCode = `function fib(n: number): number {
+  return n < 2 ? n : fib(n - 1) + fib(n - 2);
+}
+console.log(fib(30));
+
+$ scriptc run fib.ts
+832040
+
+$ scriptc build fib.ts -o fib && ./fib
+832040`;
+
+const emitCode = `$ scriptc build hello.ts --emit=c >/dev/null
+$ ls .scriptc/
+hello.c
+hello.ir.json
+
+$ scriptc build hello.ts --emit=llvm >/dev/null
+$ ls .scriptc/
+hello.c
+hello.ir.json
+hello.ll`;
+
+const installCode = `$ npm install -g scriptc
+$ scriptc run hello.ts
+hello, world`;
+
+const highlight = (src: string, lang: "bash" | "ts") =>
+  codeToHtml(src, {
+    lang,
+    theme: "github-dark",
+    transformers: [
+      {
+        name: "brighten-comments",
+        span(node: any) {
+          const style = node?.properties?.style;
+          if (typeof style === "string" && /#6a737d/i.test(style)) {
+            node.properties.style = style.replace(/#6a737d/gi, "#9daab8");
+          }
+        },
+      },
+    ],
+  });
+
+const heroHtml = await highlight(heroCode, "bash");
+const emitHtml = await highlight(emitCode, "bash");
+const installHtml = await highlight(installCode, "bash");
+---
+
+<Base
+  title="scriptc 中文文档 · 把 TypeScript 编译成原生可执行文件"
+  description="scriptc 把普通的 TypeScript 编译为小巧、快速的原生可执行文件：二进制里没有 Node，没有 V8，也没有 JavaScript 引擎。中文文档、命令行参考与兼容性说明。"
+  active="home"
+  docItems={navItems}
+>
+  <main id="main">
+    <!-- 首屏：左侧信息，右侧真实代码面板，背景是暗色材质图 -->
+    <section class="relative overflow-hidden border-b border-line">
+      <div class="pointer-events-none absolute inset-y-0 right-0 w-full lg:w-[58%]">
+        <Image
+          src={heroImg}
+          widths={[640, 1024, 1536]}
+          sizes="(min-width: 1024px) 58vw, 100vw"
+          format="webp"
+          alt=""
+          aria-hidden="true"
+          class="h-full w-full object-cover opacity-60"
+          style="-webkit-mask-image: linear-gradient(to right, transparent, black 55%); mask-image: linear-gradient(to right, transparent, black 55%)"
+        />
+      </div>
+
+      <div class="relative mx-auto grid max-w-[1440px] items-center gap-12 px-5 pb-20 pt-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)] lg:gap-16 lg:px-8 lg:pb-28 lg:pt-24">
+        <div class="max-w-[46ch]">
+          <h1
+            class="rise text-[32px] font-semibold leading-[1.15] tracking-tight text-fg sm:text-[42px] lg:text-[50px]"
+          >
+            普通的 TypeScript，
+            <br />
+            编译成
+            <span class="text-accent">原生可执行文件</span>
+          </h1>
+          <p class="rise rise-2 mt-6 text-[16px] leading-relaxed text-fg-body sm:text-[17px]">
+            产物里没有 Node，没有 V8，也没有 JavaScript 引擎。不需要注解，不需要方言，不需要特殊标准库。
+          </p>
+          <div class="rise rise-3 mt-9 flex flex-wrap items-center gap-3">
+            <a
+              href="/docs/quickstart"
+              class="rounded-control bg-fg px-5 py-2.5 text-[15px] font-medium text-ink-950 transition-transform hover:-translate-y-px active:translate-y-0 active:scale-[0.98]"
+            >
+              开始使用
+            </a>
+          </div>
+        </div>
+
+        <figure class="rise rise-4 min-w-0">
+          <figcaption class="mb-2 font-mono text-xs text-fg-subtle">fib.ts</figcaption>
+          <div class="code-panel code-body" set:html={heroHtml} />
+        </figure>
+      </div>
+    </section>
+
+    <!-- 三个层级：宽度递变的阶梯，不是等宽卡片 -->
+    <section class="border-b border-line py-20 lg:py-28">
+      <div class="mx-auto max-w-[1440px] px-5 lg:px-8">
+        <h2 class="max-w-[24ch] text-[26px] font-semibold leading-tight tracking-tight text-fg sm:text-[30px]">
+          三个层级，层级就是承诺
+        </h2>
+        <p class="mt-4 max-w-[62ch] text-[15px] leading-relaxed text-fg-muted">
+          scriptc 逐个构造地判断哪些能编译为原生代码，并且会告诉你结果。程序里的每个构造恰好落在下面一个层级。
+        </p>
+
+        <ul class="mt-12 space-y-3">
+          {
+            tiers.map((tier, i) => (
+              <li
+                class:list={[
+                  "group grid gap-4 rounded-panel border px-5 py-6 transition-all duration-300 hover:-translate-y-px md:grid-cols-[minmax(0,190px)_minmax(0,1fr)] md:gap-8 md:px-7",
+                  tier.emphasis
+                    ? "border-accent-dim/70 bg-ink-900"
+                    : "border-line bg-ink-950 md:pl-10",
+                  i === 2 && "md:pl-20",
+                ]}
+              >
+                <div>
+                  <p class="text-[17px] font-semibold text-fg">{tier.name}</p>
+                  <p class="mt-1 font-mono text-xs text-accent">{tier.tag}</p>
+                </div>
+                <div>
+                  <p class="text-[14.5px] leading-relaxed text-fg-body">{tier.body}</p>
+                  <p class="mt-3 font-mono text-xs text-fg-subtle">{tier.meta}</p>
+                </div>
+              </li>
+            ))
+          }
+        </ul>
+        <p class="mt-8 text-sm text-fg-muted">
+          <a href="/docs/coverage" class="text-accent underline decoration-accent-dim underline-offset-4 hover:decoration-accent">
+            覆盖率报告
+          </a>
+          <span> 会让你程序里的层级分布一目了然。</span>
+        </p>
+      </div>
+    </section>
+
+    <!-- 管线：全宽横向轨道，桌面 5 段，移动端竖排 -->
+    <section class="border-b border-line bg-ink-900/60 py-20 lg:py-24">
+      <div class="mx-auto max-w-[1440px] px-5 lg:px-8">
+        <h2 class="max-w-[26ch] text-[26px] font-semibold leading-tight tracking-tight text-fg sm:text-[30px]">
+          编译产物可以逐段停下查看
+        </h2>
+        <p class="mt-4 max-w-[62ch] text-[15px] leading-relaxed text-fg-muted">
+          用 <code class="inline-token">--emit</code> 停在任意一段，不同类型的产物累积在 <code class="inline-token">.scriptc/</code> 目录里。
+        </p>
+
+        <ol class="pipeline mt-12">
+          {
+            stages.map((stage) => (
+              <li class="pipeline-step">
+                <span class="block font-mono text-[13px] text-fg">{stage.label}</span>
+                <span class="mt-1 block text-xs text-fg-subtle">{stage.note}</span>
+              </li>
+            ))
+          }
+        </ol>
+
+        <div class="code-panel code-body mt-12 max-w-[640px]" set:html={emitHtml} />
+      </div>
+    </section>
+
+    <!-- 正确性：图 + 文，全页唯一的图文并列段 -->
+    <section class="border-b border-line py-20 lg:py-28">
+      <div class="mx-auto grid max-w-[1440px] items-center gap-12 px-5 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)] lg:gap-20 lg:px-8">
+        <Image
+          src={verifyImg}
+          widths={[512, 768, 1024]}
+          sizes="(min-width: 1024px) 420px, 100vw"
+          format="webp"
+          alt="两个完全对齐的机加工金属立方体，象征逐字节一致的差分验证"
+          class="w-full rounded-panel border border-line object-cover"
+        />
+        <div>
+          <h2 class="max-w-[22ch] text-[26px] font-semibold leading-tight tracking-tight text-fg sm:text-[30px]">
+            正确性由两个门禁保证
+          </h2>
+          <dl class="mt-10 space-y-8">
+            <div>
+              <dt class="font-mono text-[13px] text-accent">差分测试</dt>
+              <dd class="mt-2 max-w-[56ch] text-[14.5px] leading-relaxed text-fg-body">
+                语料库里每个程序既在 Node 下运行，也作为原生二进制运行，stdout、stderr 与退出码必须逐字节一致。服务器用实时客户端分别驱动两种实现。
+              </dd>
+            </div>
+            <div>
+              <dt class="font-mono text-[13px] text-accent">内存安全通道</dt>
+              <dd class="mt-2 max-w-[56ch] text-[14.5px] leading-relaxed text-fg-body">
+                整个语料库在 AddressSanitizer 下重跑，并做一次引用计数审计。内存泄漏和释放后使用都算构建失败。
+              </dd>
+            </div>
+          </dl>
+          <p class="mt-10 text-sm text-fg-muted">
+            <a href="/docs/how-it-works" class="text-accent underline decoration-accent-dim underline-offset-4 hover:decoration-accent">
+              工作原理
+            </a>
+            <span> 说明了这条管线背后的架构。</span>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 文档目录：三列分组，桌面横向 3 组 -->
+    <section class="border-b border-line py-20 lg:py-24">
+      <div class="mx-auto max-w-[1440px] px-5 lg:px-8">
+        <h2 class="text-[26px] font-semibold leading-tight tracking-tight text-fg sm:text-[30px]">
+          全部文档，11 页
+        </h2>
+        <div class="mt-12 grid gap-x-10 gap-y-14 md:grid-cols-2 lg:grid-cols-3">
+          {
+            byGroup.map(({ group, items }) => (
+              <div>
+                <p class="mb-5 border-b border-line pb-3 font-mono text-[11px] uppercase tracking-[0.14em] text-fg-subtle">
+                  {group}
+                </p>
+                <ul class="space-y-5">
+                  {items.map((d) => (
+                    <li>
+                      <a
+                        href={docPath(d.id)}
+                        class="group block rounded-control py-1 transition-transform hover:translate-x-0.5"
+                      >
+                        <span class="text-[15px] text-fg transition-colors group-hover:text-accent">
+                          {d.data.title}
+                        </span>
+                        <span class="mt-1 block max-w-[40ch] text-[13px] leading-relaxed text-fg-subtle">
+                          {d.data.description}
+                        </span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))
+          }
+        </div>
+      </div>
+    </section>
+
+    <!-- 收尾：安装命令 -->
+    <section class="py-20 lg:py-24">
+      <div class="mx-auto grid max-w-[1440px] items-center gap-10 px-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] lg:px-8">
+        <div>
+          <h2 class="text-[26px] font-semibold leading-tight tracking-tight text-fg sm:text-[30px]">
+            装上就能试
+          </h2>
+          <p class="mt-4 max-w-[54ch] text-[15px] leading-relaxed text-fg-muted">
+            编译器需要 Node.js 24 或更高版本。源码级产物（<code class="inline-token">ir</code>、<code class="inline-token">c</code>、<code class="inline-token">llvm</code>）只要 Node 就能生成，它产出的可执行文件不依赖 Node。
+          </p>
+        </div>
+        <div class="code-panel code-body" set:html={installHtml} />
+      </div>
+    </section>
+  </main>
+</Base>
+
+<style>
+  .code-panel {
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-panel);
+    background-color: #0d1117;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+    overflow: hidden;
+  }
+
+  .code-body :global(pre) {
+    margin: 0;
+    padding: 1.15rem 1.25rem;
+    overflow-x: auto;
+    background-color: transparent !important;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    line-height: 1.75;
+    color: var(--color-fg);
+    tab-size: 2;
+  }
+
+  .inline-token {
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-control);
+    background-color: var(--color-ink-850);
+    padding: 0.05rem 0.35rem;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--color-fg);
+  }
+
+  .pipeline {
+    display: grid;
+    gap: 1px;
+    background-color: var(--color-line);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-panel);
+    overflow: hidden;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .pipeline-step {
+    background-color: var(--color-ink-950);
+    padding: 1rem 1.1rem;
+    transition: background-color 0.24s ease;
+  }
+
+  .pipeline-step:hover {
+    background-color: var(--color-ink-850);
+  }
+
+  @media (min-width: 768px) {
+    .pipeline {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .rise {
+      animation: rise 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .rise-2 {
+      animation-delay: 0.07s;
+    }
+    .rise-3 {
+      animation-delay: 0.14s;
+    }
+    .rise-4 {
+      animation-delay: 0.2s;
+    }
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+    }
+  }
+</style>

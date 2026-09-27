@@ -1,0 +1,52 @@
+---
+import "@fontsource-variable/geist";
+import "@fontsource-variable/geist-mono";
+import "../styles/global.css";
+import SiteHeader from "../components/SiteHeader.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import { SITE, type DocNavItem } from "../consts";
+
+type Props = {
+  title: string;
+  description: string;
+  active?: "home" | "docs";
+  docItems?: DocNavItem[];
+};
+
+const { title, description, active, docItems = [] } = Astro.props;
+// `format: "file"` makes Astro.url.pathname end in .html; canonicals should not.
+const cleanPath = Astro.url.pathname.replace(/(?:index)?\.html$/, "") || "/";
+const canonical = new URL(cleanPath, Astro.site ?? Astro.url.origin);
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <meta name="theme-color" content="#0a0a0b" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230a0a0b'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='16' font-weight='700' fill='%235aa6f0' text-anchor='middle'%3Es%3C/text%3E%3C/svg%3E"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:site_name" content={SITE.name} />
+    <link rel="alternate" type="application/json" href="/search.json" />
+  </head>
+  <body class="min-h-[100dvh] bg-ink-950 font-sans text-fg antialiased">
+    <a
+      href="#main"
+      class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-control focus:bg-accent focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-ink-950"
+    >
+      跳到正文
+    </a>
+    <SiteHeader active={active} items={docItems} />
+    <slot />
+    <SiteFooter />
+  </body>
+</html>

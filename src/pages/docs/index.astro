@@ -1,0 +1,9 @@
+---
+import { getCollection } from "astro:content";
+import DocPage from "../../components/DocPage.astro";
+
+const introduction = await getCollection("docs", (e) => e.id === "introduction");
+const entry = introduction[0];
+---
+
+<DocPage entry={entry} />

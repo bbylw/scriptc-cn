@@ -1,0 +1,42 @@
+---
+import { DOC_GROUPS, type DocNavItem } from "../consts";
+
+type Props = { items: DocNavItem[]; current: string };
+const { items, current } = Astro.props;
+---
+
+<aside class="hidden w-60 shrink-0 lg:block" aria-label="文档目录">
+  <nav class="sticky top-16 h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain py-10 pr-4">
+    {
+      DOC_GROUPS.map((group) => {
+        const groupItems = items.filter((i) => i.group === group);
+        if (groupItems.length === 0) return null;
+        return (
+          <div class="mb-8">
+            <p class="mb-3 font-mono text-[11px] uppercase tracking-[0.14em] text-fg-subtle">
+              {group}
+            </p>
+            <ul class="space-y-0.5">
+              {groupItems.map((item) => (
+                <li>
+                  <a
+                    href={item.path}
+                    aria-current={item.path === current ? "page" : undefined}
+                    class:list={[
+                      "block rounded-control py-1.5 pl-3 pr-2 text-[13.5px] transition-colors",
+                      item.path === current
+                        ? "bg-ink-850 font-medium text-fg"
+                        : "text-fg-muted hover:bg-ink-900 hover:text-fg",
+                    ]}
+                  >
+                    {item.title}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+      })
+    }
+  </nav>
+</aside>

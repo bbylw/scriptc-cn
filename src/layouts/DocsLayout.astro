@@ -1,0 +1,160 @@
+---
+import { siGithub } from "simple-icons";
+import Base from "./Base.astro";
+import Sidebar from "../components/DocSidebar.astro";
+import { SITE, type DocNavItem } from "../consts";
+
+const githubPath = siGithub.path;
+
+type Heading = { depth: number; text: string; slug: string };
+
+type Props = {
+  title: string;
+  description: string;
+  group: string;
+  source: string;
+  current: string;
+  headings: Heading[];
+  items: DocNavItem[];
+  prev?: DocNavItem;
+  next?: DocNavItem;
+};
+
+const props = Astro.props;
+const toc = props.headings.filter((h) => h.depth <= 3);
+---
+
+<Base
+  title={`${props.title} · scriptc 中文文档`}
+  description={props.description}
+  active="docs"
+  docItems={props.items}
+>
+  <div class="mx-auto flex w-full max-w-[1440px] gap-8 px-5 lg:px-8">
+    <Sidebar items={props.items} current={props.current} />
+
+    <main id="main" class="min-w-0 flex-1 py-10 lg:py-14">
+      <div class="mx-auto max-w-[760px]">
+        <p class="mb-4 font-mono text-[11px] uppercase tracking-[0.14em] text-fg-subtle">
+          {props.group}
+        </p>
+        <h1 class="text-[30px] font-semibold leading-[1.2] tracking-tight text-fg md:text-[34px]">
+          {props.title}
+        </h1>
+        <p class="mt-4 text-[15px] leading-relaxed text-fg-muted">{props.description}</p>
+
+        <div class="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 border-y border-line py-3 text-[13px]">
+          <a
+            href={props.source}
+            rel="noopener"
+            target="_blank"
+            class="text-fg-muted transition-colors hover:text-accent"
+          >
+            英文原文
+          </a>
+          <a
+            href={SITE.repo}
+            rel="noopener"
+            target="_blank"
+            title="源码仓库"
+            aria-label="源码仓库（GitHub）"
+            class="inline-flex items-center text-fg-muted transition-colors hover:text-accent"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d={githubPath}></path>
+            </svg>
+          </a>
+        </div>
+
+        <article class="prose-doc mt-10">
+          <slot />
+        </article>
+
+        <nav aria-label="翻页" class="mt-14 grid gap-3 border-t border-line pt-8 sm:grid-cols-2">
+          {
+            props.prev ? (
+              <a
+                href={props.prev.path}
+                class="group rounded-panel border border-line bg-ink-900 px-4 py-3 transition-colors hover:border-line-strong"
+              >
+                <span class="block font-mono text-[11px] text-fg-subtle">上一页</span>
+                <span class="mt-1 block text-sm text-fg-muted transition-colors group-hover:text-fg">
+                  {props.prev.group} · {props.prev.title}
+                </span>
+              </a>
+            ) : (
+              <span aria-hidden />
+            )
+          }
+          {
+            props.next && (
+              <a
+                href={props.next.path}
+                class="group rounded-panel border border-line bg-ink-900 px-4 py-3 text-right transition-colors hover:border-line-strong sm:col-start-2"
+              >
+                <span class="block font-mono text-[11px] text-fg-subtle">下一页</span>
+                <span class="mt-1 block text-sm text-fg-muted transition-colors group-hover:text-fg">
+                  {props.next.group} · {props.next.title}
+                </span>
+              </a>
+            )
+          }
+        </nav>
+      </div>
+    </main>
+
+    <aside class="hidden w-56 shrink-0 xl:block" aria-label="本页目录">
+      <div class="sticky top-16 py-14 pl-2">
+        {
+          toc.length > 0 && (
+            <>
+              <p class="mb-3 font-mono text-[11px] uppercase tracking-[0.14em] text-fg-subtle">本页</p>
+              <ul class="space-y-2 border-l border-line">
+                {toc.map((h) => (
+                  <li>
+                    <a
+                      href={`#${h.slug}`}
+                      class:list={[
+                        "block border-l-2 border-transparent pl-3 text-[13px] leading-snug text-fg-muted transition-colors hover:border-accent hover:text-fg",
+                        h.depth === 3 && "pl-6",
+                      ]}
+                    >
+                      {h.text}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )
+        }
+      </div>
+    </aside>
+  </div>
+</Base>
+
+<script>
+  document.querySelectorAll<HTMLElement>(".prose-doc pre").forEach((block) => {
+    const wrap = document.createElement("div");
+    wrap.className = "relative";
+    block.parentNode?.insertBefore(wrap, block);
+    wrap.appendChild(block);
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = "复制";
+    btn.className =
+      "absolute right-3 top-3 rounded-control border border-line bg-ink-850 px-2 py-1 font-mono text-[11px] text-fg-muted transition-colors hover:border-line-strong hover:text-fg";
+    btn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(block.innerText);
+        btn.textContent = "已复制";
+      } catch {
+        btn.textContent = "请手动复制";
+      }
+      window.setTimeout(() => {
+        btn.textContent = "复制";
+      }, 1600);
+    });
+    wrap.appendChild(btn);
+  });
+</script>

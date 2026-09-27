@@ -1,0 +1,18 @@
+---
+import { SITE } from "../consts";
+---
+
+<footer class="mt-auto border-t border-line bg-ink-950">
+  <div class="mx-auto grid max-w-[1440px] gap-8 px-5 py-12 md:grid-cols-[minmax(0,1fr)_auto] lg:px-8">
+    <div>
+      <span class="font-mono text-[15px] font-bold text-fg">scriptc</span>
+      <p class="mt-3 max-w-[46ch] text-sm leading-relaxed text-fg-muted">内容译自 <a href={SITE.upstream} rel="noopener" target="_blank" class="text-fg underline decoration-line-strong underline-offset-4 transition-colors hover:decoration-accent">scriptc.dev</a>，源码以 Apache-2.0 许可发布。</p>
+    </div>
+    <nav aria-label="页脚链接" class="flex flex-col items-start gap-3 text-sm md:items-end">
+      <a href="/docs/quickstart" class="text-fg-muted transition-colors hover:text-fg">快速开始</a>
+      <a href="/docs/cli" class="text-fg-muted transition-colors hover:text-fg">命令行参考</a>
+      <a href="/docs/limitations" class="text-fg-muted transition-colors hover:text-fg">当前限制</a>
+      <a href={SITE.repo} rel="noopener" target="_blank" class="text-fg-muted transition-colors hover:text-fg">GitHub 仓库</a>
+    </nav>
+  </div>
+</footer>

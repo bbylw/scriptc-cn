@@ -1,0 +1,57 @@
+---
+import { siGithub } from "simple-icons";
+import { SITE } from "../consts";
+import NavActions from "../components/NavActions";
+import type { DocNavItem } from "../consts";
+
+type Props = {
+  active?: "home" | "docs";
+  items?: DocNavItem[];
+};
+
+const { active, items = [] } = Astro.props;
+const githubPath = siGithub.path;
+const navMuted = "text-fg-muted hover:bg-ink-850 hover:text-fg";
+const navActive = "text-fg";
+---
+
+<header class="sticky top-0 z-40 border-b border-line bg-ink-950/85 backdrop-blur-md supports-[backdrop-filter]:bg-ink-950/70">
+  <div class="mx-auto flex h-16 max-w-[1440px] items-center gap-6 px-5 lg:px-8">
+    <a href="/" class="group flex shrink-0 items-baseline gap-2" aria-label="scriptc 首页">
+      <span class="font-mono text-[17px] font-bold tracking-tight text-fg transition-colors group-hover:text-accent">scriptc</span>
+    </a>
+
+    <nav aria-label="主导航" class="hidden items-center gap-1 md:flex">
+      <a href="/" class:list={["rounded-control px-3 py-1.5 text-sm transition-colors", active === "home" ? navActive : navMuted]}>
+        概览
+      </a>
+      <a href="/docs" class:list={["rounded-control px-3 py-1.5 text-sm transition-colors", active === "docs" ? navActive : navMuted]}>
+        文档
+      </a>
+    </nav>
+
+    <div class="ml-auto flex items-center gap-2">
+      <a
+        href={SITE.npm}
+        rel="noopener"
+        target="_blank"
+        class="hidden rounded-control border border-line px-3 py-1.5 font-mono text-xs text-fg-muted transition-colors hover:border-line-strong hover:text-fg lg:inline"
+      >
+        npm i -g scriptc
+      </a>
+      <a
+        href={SITE.repo}
+        rel="noopener"
+        target="_blank"
+        title="源码仓库"
+        aria-label="源码仓库（GitHub）"
+        class:list={["hidden rounded-control p-2 transition-colors md:block", navMuted]}
+      >
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d={githubPath}></path>
+        </svg>
+      </a>
+      <NavActions client:idle items={items} githubPath={githubPath} repoUrl={SITE.repo} />
+    </div>
+  </div>
+</header>
