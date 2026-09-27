@@ -41,6 +41,10 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    /* Drop the double-tap zoom delay without disabling pinch-zoom, and give
+       taps a deliberate highlight instead of the browser default grey. */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgb(90 166 240 / 0.22);
   }
 
   ::selection {

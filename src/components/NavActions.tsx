@@ -78,6 +78,14 @@ export default function NavActions({
   const [index, setIndex] = useState<IndexEntry[] | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [cursor, setCursor] = useState(0);
+  // macOS shows ⌘, everywhere else Ctrl. Resolved after mount so the
+  // server render and the first client render agree (no hydration mismatch).
+  const [modKey, setModKey] = useState("Ctrl");
+  useEffect(() => {
+    if (/mac/i.test(navigator.platform) || /macintosh/i.test(navigator.userAgent)) {
+      setModKey("⌘");
+    }
+  }, []);
   const inputRef = useRef<HTMLInputElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
@@ -195,8 +203,11 @@ export default function NavActions({
       >
         <MagnifyingGlassIcon size={15} weight="bold" aria-hidden />
         <span className="hidden sm:inline">搜索文档</span>
-        <kbd className="hidden rounded border border-line bg-ink-850 px-1 font-mono text-[10px] text-fg-subtle sm:inline">
-          Ctrl K
+        <kbd
+          translate="no"
+          className="hidden rounded border border-line bg-ink-850 px-1 font-mono text-[10px] text-fg-subtle sm:inline"
+        >
+          {modKey}&nbsp;K
         </kbd>
       </button>
 
@@ -257,7 +268,7 @@ export default function NavActions({
             className="w-full max-w-xl overflow-hidden rounded-panel border border-line bg-ink-900 shadow-[0_24px_60px_-12px_rgba(0,0,0,0.7)]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-3 border-b border-line px-4">
+            <div className="flex items-center gap-3 border-b border-line px-4 transition-colors focus-within:border-accent">
               <MagnifyingGlassIcon size={16} className="text-fg-subtle" aria-hidden />
               <input
                 ref={inputRef}

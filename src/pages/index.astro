@@ -128,6 +128,8 @@ const installHtml = await highlight(installCode, "bash");
           format="webp"
           alt=""
           aria-hidden="true"
+          loading="eager"
+          fetchpriority="high"
           class="h-full w-full object-cover opacity-60"
           style="-webkit-mask-image: linear-gradient(to right, transparent, black 55%); mask-image: linear-gradient(to right, transparent, black 55%)"
         />
@@ -136,7 +138,7 @@ const installHtml = await highlight(installCode, "bash");
       <div class="relative mx-auto grid max-w-[1440px] items-center gap-12 px-5 pb-20 pt-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)] lg:gap-16 lg:px-8 lg:pb-28 lg:pt-24">
         <div class="max-w-[46ch]">
           <h1
-            class="rise text-[32px] font-semibold leading-[1.15] tracking-tight text-fg sm:text-[42px] lg:text-[50px]"
+            class="rise text-balance text-[32px] font-semibold leading-[1.15] tracking-tight text-fg sm:text-[42px] lg:text-[50px]"
           >
             普通的 TypeScript，
             <br />
@@ -166,7 +168,7 @@ const installHtml = await highlight(installCode, "bash");
     <!-- 三个层级：宽度递变的阶梯，不是等宽卡片 -->
     <section class="border-b border-line py-20 lg:py-28">
       <div class="mx-auto max-w-[1440px] px-5 lg:px-8">
-        <h2 class="max-w-[24ch] text-[26px] font-semibold leading-tight tracking-tight text-fg sm:text-[30px]">
+        <h2 class="text-balance max-w-[24ch] text-[26px] font-semibold leading-tight tracking-tight text-fg sm:text-[30px]">
           三个层级，层级就是承诺
         </h2>
         <p class="mt-4 max-w-[62ch] text-[15px] leading-relaxed text-fg-muted">
@@ -178,7 +180,7 @@ const installHtml = await highlight(installCode, "bash");
             tiers.map((tier, i) => (
               <li
                 class:list={[
-                  "group grid gap-4 rounded-panel border px-5 py-6 transition-all duration-300 hover:-translate-y-px md:grid-cols-[minmax(0,190px)_minmax(0,1fr)] md:gap-8 md:px-7",
+                  "group grid gap-4 rounded-panel border px-5 py-6 transition-[transform,border-color,background-color] duration-300 hover:-translate-y-px md:grid-cols-[minmax(0,190px)_minmax(0,1fr)] md:gap-8 md:px-7",
                   tier.emphasis
                     ? "border-accent-dim/70 bg-ink-900"
                     : "border-line bg-ink-950 md:pl-10",
@@ -209,7 +211,7 @@ const installHtml = await highlight(installCode, "bash");
     <!-- 管线：全宽横向轨道，桌面 5 段，移动端竖排 -->
     <section class="border-b border-line bg-ink-900/60 py-20 lg:py-24">
       <div class="mx-auto max-w-[1440px] px-5 lg:px-8">
-        <h2 class="max-w-[26ch] text-[26px] font-semibold leading-tight tracking-tight text-fg sm:text-[30px]">
+        <h2 class="text-balance max-w-[26ch] text-[26px] font-semibold leading-tight tracking-tight text-fg sm:text-[30px]">
           编译产物可以逐段停下查看
         </h2>
         <p class="mt-4 max-w-[62ch] text-[15px] leading-relaxed text-fg-muted">
@@ -240,10 +242,11 @@ const installHtml = await highlight(installCode, "bash");
           sizes="(min-width: 1024px) 420px, 100vw"
           format="webp"
           alt="两个完全对齐的机加工金属立方体，象征逐字节一致的差分验证"
+          loading="lazy"
           class="w-full rounded-panel border border-line object-cover"
         />
         <div>
-          <h2 class="max-w-[22ch] text-[26px] font-semibold leading-tight tracking-tight text-fg sm:text-[30px]">
+          <h2 class="text-balance max-w-[22ch] text-[26px] font-semibold leading-tight tracking-tight text-fg sm:text-[30px]">
             正确性由两个门禁保证
           </h2>
           <dl class="mt-10 space-y-8">
@@ -273,7 +276,7 @@ const installHtml = await highlight(installCode, "bash");
     <!-- 文档目录：三列分组，桌面横向 3 组 -->
     <section class="border-b border-line py-20 lg:py-24">
       <div class="mx-auto max-w-[1440px] px-5 lg:px-8">
-        <h2 class="text-[26px] font-semibold leading-tight tracking-tight text-fg sm:text-[30px]">
+        <h2 class="text-balance text-[26px] font-semibold leading-tight tracking-tight text-fg sm:text-[30px]">
           全部文档，{docs.length} 页
         </h2>
         <div class="mt-12 grid gap-x-10 gap-y-14 md:grid-cols-2 lg:grid-cols-3">
@@ -311,7 +314,7 @@ const installHtml = await highlight(installCode, "bash");
     <section class="py-20 lg:py-24">
       <div class="mx-auto grid max-w-[1440px] items-center gap-10 px-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] lg:px-8">
         <div>
-          <h2 class="text-[26px] font-semibold leading-tight tracking-tight text-fg sm:text-[30px]">
+          <h2 class="text-balance text-[26px] font-semibold leading-tight tracking-tight text-fg sm:text-[30px]">
             装上就能试
           </h2>
           <p class="mt-4 max-w-[54ch] text-[15px] leading-relaxed text-fg-muted">
