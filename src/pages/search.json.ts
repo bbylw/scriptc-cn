@@ -1,11 +1,6 @@
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import path from "node:path";
 import { getCollection, render } from "astro:content";
 import type { APIRoute } from "astro";
 import { DOC_GROUPS, docPath } from "../consts";
-
-const DOCS_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "content", "docs");
 
 function stripCode(body: string): string {
   return body.replace(/^```[\s\S]*?^```/gm, "");
@@ -36,13 +31,6 @@ export const GET: APIRoute = async () => {
           a.data.order - b.data.order,
       )
       .map(async (entry) => {
-        let raw = "";
-        try {
-          raw = readFileSync(path.join(DOCS_DIR, `${entry.id}.md`), "utf8");
-        } catch {
-          raw = "";
-        }
-        const body = raw.replace(/^---[\s\S]*?\n---\n/, "");
         const { headings } = await render(entry);
         return {
           path: docPath(entry.id),
@@ -52,7 +40,11 @@ export const GET: APIRoute = async () => {
           headings: headings
             .filter((h) => h.depth <= 3)
             .map((h) => ({ text: h.text, slug: h.slug })),
-          body: toPlainText(body).slice(0, 4000),
+          // `entry.body` is the markdown source, so drop the frontmatter block
+          // before flattening. Reading the file off disk is not an option here:
+          // this module is bundled into the build output, so `import.meta.url`
+          // no longer points at `src/`.
+          body: toPlainText((entry.body ?? "").replace(/^---[\s\S]*?\n---\n/, "")).slice(0, 4000),
         };
       }),
   );

@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ArrowRight,
-  BookOpenText,
-  CaretRight,
-  List,
-  MagnifyingGlass,
-  X,
+  ArrowRightIcon,
+  BookOpenTextIcon,
+  CaretRightIcon,
+  ListIcon,
+  MagnifyingGlassIcon,
+  XIcon,
 } from "@phosphor-icons/react";
 import type { DocNavItem } from "../consts";
 
@@ -79,6 +79,8 @@ export default function NavActions({
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [cursor, setCursor] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!openSearch || index) return;
@@ -92,24 +94,78 @@ export default function NavActions({
       .catch(() => setStatus("error"));
   }, [openSearch, index]);
 
+  const closeSearch = useCallback(() => {
+    setOpenSearch(false);
+    setQuery("");
+  }, []);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setOpenMenu(false);
-        setOpenSearch((v) => !v);
+        setOpenSearch((v) => {
+          if (v) {
+            // Reopening through the shortcut must also hand focus back.
+            restoreFocusRef.current?.focus();
+          }
+          return !v;
+        });
       }
       if (e.key === "Escape") {
-        setOpenSearch(false);
-        setOpenMenu(false);
+        if (openSearch) {
+          closeSearch();
+        } else {
+          setOpenMenu(false);
+        }
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [openSearch, closeSearch]);
 
+  // Move focus into the dialog on open, hand it back to whatever had it on close,
+  // and stop the page behind from scrolling underneath the overlay.
   useEffect(() => {
-    if (openSearch) inputRef.current?.focus();
+    if (!openSearch) return;
+    restoreFocusRef.current = document.activeElement as HTMLElement | null;
+    inputRef.current?.focus();
+
+    const { body } = document;
+    const prevOverflow = body.style.overflow;
+    const prevPadding = body.style.paddingRight;
+    const scrollbar = window.innerWidth - document.documentElement.clientWidth;
+    body.style.overflow = "hidden";
+    if (scrollbar > 0) body.style.paddingRight = `${scrollbar}px`;
+
+    return () => {
+      body.style.overflow = prevOverflow;
+      body.style.paddingRight = prevPadding;
+      restoreFocusRef.current?.focus();
+    };
+  }, [openSearch]);
+
+  // Keep Tab inside the dialog while it is open.
+  useEffect(() => {
+    if (!openSearch) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input, [tabindex]:not([tabindex="-1"])',
+      );
+      if (!focusable || focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKey, true);
+    return () => document.removeEventListener("keydown", onKey, true);
   }, [openSearch]);
 
   useEffect(() => setCursor(0), [query]);
@@ -124,14 +180,20 @@ export default function NavActions({
       .slice(0, 12);
   }, [index, query]);
 
+  const active = cursor < hits.length ? cursor : 0;
+  const searching = index !== null && query.trim() !== "";
+
   return (
     <>
       <button
         type="button"
         onClick={() => setOpenSearch(true)}
+        aria-expanded={openSearch}
+        aria-haspopup="dialog"
+        aria-controls="search-dialog"
         className="flex items-center gap-2 rounded-control border border-line bg-ink-900 px-2.5 py-1.5 text-sm text-fg-muted transition-colors hover:border-line-strong hover:text-fg active:scale-[0.98]"
       >
-        <MagnifyingGlass size={15} weight="bold" aria-hidden />
+        <MagnifyingGlassIcon size={15} weight="bold" aria-hidden />
         <span className="hidden sm:inline">搜索文档</span>
         <kbd className="hidden rounded border border-line bg-ink-850 px-1 font-mono text-[10px] text-fg-subtle sm:inline">
           Ctrl K
@@ -143,16 +205,16 @@ export default function NavActions({
         onClick={() => setOpenMenu((v) => !v)}
         aria-expanded={openMenu}
         aria-label="打开导航菜单"
-        className="flex items-center rounded-control border border-line p-2 text-fg-muted transition-colors hover:border-line-strong hover:text-fg md:hidden"
+        className="flex items-center rounded-control border border-line p-2 text-fg-muted transition-colors hover:border-line-strong hover:text-fg lg:hidden"
       >
-        {openMenu ? <X size={16} aria-hidden /> : <List size={16} aria-hidden />}
+        {openMenu ? <XIcon size={16} aria-hidden /> : <ListIcon size={16} aria-hidden />}
       </button>
 
       {openMenu && (
-        <div className="fixed inset-x-0 top-16 z-30 border-b border-line bg-ink-950 px-5 pb-6 pt-3 md:hidden">
+        <div className="fixed inset-x-0 top-16 z-30 border-b border-line bg-ink-950 px-5 pb-6 pt-3 lg:hidden">
           <nav aria-label="移动导航" className="flex flex-col gap-1">
             <a href="/" className="flex items-center gap-2 py-2 text-sm text-fg">
-              <CaretRight size={14} aria-hidden />
+              <CaretRightIcon size={14} aria-hidden />
               概览
             </a>
             {items.map((item) => (
@@ -161,7 +223,7 @@ export default function NavActions({
                 href={item.path}
                 className="flex items-center gap-2 py-2 text-sm text-fg-muted"
               >
-                <CaretRight size={14} aria-hidden />
+                <CaretRightIcon size={14} aria-hidden />
                 {item.title}
               </a>
             ))}
@@ -184,19 +246,31 @@ export default function NavActions({
       {openSearch && (
         <div
           className="fixed inset-0 z-50 flex items-start justify-center bg-ink-950/80 px-4 pt-[12vh] backdrop-blur-sm"
-          role="dialog"
-          aria-modal="true"
-          aria-label="搜索文档"
-          onClick={() => setOpenSearch(false)}
+          onClick={closeSearch}
         >
           <div
+            id="search-dialog"
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="搜索文档"
             className="w-full max-w-xl overflow-hidden rounded-panel border border-line bg-ink-900 shadow-[0_24px_60px_-12px_rgba(0,0,0,0.7)]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-3 border-b border-line px-4">
-              <MagnifyingGlass size={16} className="text-fg-subtle" aria-hidden />
+              <MagnifyingGlassIcon size={16} className="text-fg-subtle" aria-hidden />
               <input
                 ref={inputRef}
+                id="search-input"
+                type="text"
+                role="combobox"
+                aria-expanded={searching}
+                aria-controls="search-results"
+                aria-autocomplete="list"
+                aria-activedescendant={
+                  searching && hits.length > 0 ? `search-hit-${active}` : undefined
+                }
+                aria-describedby="search-status"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => {
@@ -208,21 +282,23 @@ export default function NavActions({
                     e.preventDefault();
                     setCursor((c) => Math.max(c - 1, 0));
                   }
-                  if (e.key === "Enter" && hits[cursor]) {
-                    window.location.href = hits[cursor].path + (hits[cursor].anchor ?? "");
+                  if (e.key === "Enter" && hits[active]) {
+                    window.location.href = hits[active].path + (hits[active].anchor ?? "");
                   }
                 }}
                 placeholder="搜索文档、命令、API"
                 aria-label="搜索关键词"
+                autoComplete="off"
+                spellCheck={false}
                 className="w-full bg-transparent py-4 text-[15px] text-fg outline-none placeholder:text-fg-subtle"
               />
               <button
                 type="button"
-                onClick={() => setOpenSearch(false)}
+                onClick={closeSearch}
                 aria-label="关闭搜索"
                 className="rounded border border-line p-1 text-fg-subtle transition-colors hover:text-fg"
               >
-                <X size={13} aria-hidden />
+                <XIcon size={13} aria-hidden />
               </button>
             </div>
 
@@ -255,7 +331,7 @@ export default function NavActions({
                           href={item.path}
                           className="flex items-center gap-1.5 rounded-control border border-line px-2.5 py-1.5 text-[13px] text-fg-muted transition-colors hover:border-line-strong hover:text-fg"
                         >
-                          <BookOpenText size={13} aria-hidden />
+                          <BookOpenTextIcon size={13} aria-hidden />
                           {item.title}
                         </a>
                       </li>
@@ -263,38 +339,54 @@ export default function NavActions({
                   </ul>
                 </div>
               )}
-              {index !== null && query.trim() !== "" && hits.length === 0 && (
+              {searching && hits.length === 0 && (
                 <p className="px-3 py-6 text-sm text-fg-muted">
                   没有匹配 “{query.trim()}” 的条目。试试更短的关键词，例如 emit、wasi、ffi。
                 </p>
               )}
-              {hits.map((hit, i) => (
-                <a
-                  key={`${hit.path}${hit.anchor ?? ""}`}
-                  href={hit.path + (hit.anchor ?? "")}
-                  onMouseEnter={() => setCursor(i)}
-                  className={[
-                    "flex items-start gap-3 rounded-control px-3 py-2.5 transition-colors",
-                    i === cursor ? "bg-ink-850" : "hover:bg-ink-850/60",
-                  ].join(" ")}
-                >
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm text-fg">
-                      {hit.heading ?? hit.title}
-                    </span>
-                    <span className="block truncate text-xs text-fg-subtle">
-                      {hit.group}
-                      {hit.heading ? ` · ${hit.title}` : ""}
-                    </span>
-                  </span>
-                  <ArrowRight
-                    size={14}
-                    className={i === cursor ? "mt-1 text-accent" : "mt-1 text-fg-subtle"}
-                    aria-hidden
-                  />
-                </a>
-              ))}
+              {searching && hits.length > 0 && (
+                <ul id="search-results" role="listbox" aria-label="搜索结果">
+                  {hits.map((hit, i) => (
+                    <li key={`${hit.path}${hit.anchor ?? ""}`} role="presentation">
+                      <a
+                        id={`search-hit-${i}`}
+                        role="option"
+                        aria-selected={i === active}
+                        href={hit.path + (hit.anchor ?? "")}
+                        onMouseEnter={() => setCursor(i)}
+                        className={[
+                          "flex items-start gap-3 rounded-control px-3 py-2.5 transition-colors",
+                          i === active ? "bg-ink-850" : "hover:bg-ink-850/60",
+                        ].join(" ")}
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm text-fg">
+                            {hit.heading ?? hit.title}
+                          </span>
+                          <span className="block truncate text-xs text-fg-subtle">
+                            {hit.group}
+                            {hit.heading ? ` · ${hit.title}` : ""}
+                          </span>
+                        </span>
+                        <ArrowRightIcon
+                          size={14}
+                          className={i === active ? "mt-1 text-accent" : "mt-1 text-fg-subtle"}
+                          aria-hidden
+                        />
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
+
+            <p id="search-status" role="status" aria-live="polite" className="sr-only">
+              {searching
+                ? hits.length === 0
+                  ? `没有找到与 ${query.trim()} 匹配的条目`
+                  : `找到 ${hits.length} 条结果，当前第 ${active + 1} 条：${hits[active].heading ?? hits[active].title}`
+                : ""}
+            </p>
           </div>
         </div>
       )}

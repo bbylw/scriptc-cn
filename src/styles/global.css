@@ -203,6 +203,12 @@
   font-family: var(--font-mono);
 }
 
+/* The copy button is injected into a `.code-block` wrapper by DocsLayout.astro.
+   It only becomes visible on hover/focus, so it never rests on the code. */
+.prose-doc .code-block > pre {
+  scrollbar-gutter: stable;
+}
+
 .prose-doc blockquote {
   margin: 0 0 1.4rem;
   border-left: 2px solid var(--color-accent-dim);

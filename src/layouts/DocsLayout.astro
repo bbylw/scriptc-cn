@@ -135,15 +135,18 @@ const toc = props.headings.filter((h) => h.depth <= 3);
 <script>
   document.querySelectorAll<HTMLElement>(".prose-doc pre").forEach((block) => {
     const wrap = document.createElement("div");
-    wrap.className = "relative";
+    wrap.className = "code-block group/code relative";
     block.parentNode?.insertBefore(wrap, block);
     wrap.appendChild(block);
 
     const btn = document.createElement("button");
     btn.type = "button";
     btn.textContent = "复制";
+    btn.setAttribute("aria-live", "polite");
+    // Stays out of the way until the block is hovered or the button itself is
+    // focused, so it can never sit on top of the first line of code.
     btn.className =
-      "absolute right-3 top-3 rounded-control border border-line bg-ink-850 px-2 py-1 font-mono text-[11px] text-fg-muted transition-colors hover:border-line-strong hover:text-fg";
+      "pointer-events-none absolute right-3 top-3 rounded-control border border-line bg-ink-850 px-2 py-1 font-mono text-[11px] text-fg-muted opacity-0 transition-opacity hover:text-fg focus-visible:pointer-events-auto focus-visible:opacity-100 group-hover/code:pointer-events-auto group-hover/code:opacity-100";
     btn.addEventListener("click", async () => {
       try {
         await navigator.clipboard.writeText(block.innerText);

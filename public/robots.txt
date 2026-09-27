@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://scriptc.ndjp.net/sitemap-index.xml

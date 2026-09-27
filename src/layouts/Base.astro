@@ -1,6 +1,4 @@
 ---
-import "@fontsource-variable/geist";
-import "@fontsource-variable/geist-mono";
 import "../styles/global.css";
 import SiteHeader from "../components/SiteHeader.astro";
 import SiteFooter from "../components/SiteFooter.astro";
@@ -16,7 +14,9 @@ type Props = {
 const { title, description, active, docItems = [] } = Astro.props;
 // `format: "file"` makes Astro.url.pathname end in .html; canonicals should not.
 const cleanPath = Astro.url.pathname.replace(/(?:index)?\.html$/, "") || "/";
-const canonical = new URL(cleanPath, Astro.site ?? Astro.url.origin);
+const origin = Astro.site ?? Astro.url.origin;
+const canonical = new URL(cleanPath, origin);
+const ogImage = new URL("/og.png", origin);
 ---
 
 <!doctype html>
@@ -33,9 +33,20 @@ const canonical = new URL(cleanPath, Astro.site ?? Astro.url.origin);
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230a0a0b'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='16' font-weight='700' fill='%235aa6f0' text-anchor='middle'%3Es%3C/text%3E%3C/svg%3E"
     />
     <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:site_name" content={SITE.name} />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="scriptc 中文文档 · 把 TypeScript 编译成原生可执行文件" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
     <link rel="alternate" type="application/json" href="/search.json" />
   </head>
   <body class="min-h-[100dvh] bg-ink-950 font-sans text-fg antialiased">
